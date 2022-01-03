@@ -4,7 +4,7 @@ This is a library with some reusable functions for [Temporal.io TypeScript SDK](
 
 - `sleepUntil`: sleep to a specific date, instead of by num of milliseconds
 - `UpdatableTimer`: sleep to a specific date, updatable and queryable
-- `ScheduleWorkflow`: schedule other workflows by extended cron syntax, with support for jitter, timezone, max invocations, 
+- `ScheduleWorkflow`: schedule other workflows by extended cron syntax, with support for jitter, timezone, max invocations, manual triggers, pausing/unpausing, querying future executions, and more.
 
 This serves as both a utility library and a demonstration of how you can publish reusable Temporal libraries (both for Workflows and Activities).
 
@@ -19,14 +19,14 @@ Repo: https://github.com/sw-yx/temporal-time-utils
 This is a simple drop in replacement for Temporal's `workflow.sleep()` API for when you need to sleep to a specific date rather than a fixed number of milliseconds.
 
 ```ts
-import { sleepUntil } from 'temporal-time-utils'
+import { sleepUntil } from "temporal-time-utils";
 
 // inside workflow function
-sleepUntil('30 Sep ' + (new Date().getFullYear() + 1)); // wake up when September ends
-sleepUntil('5 Nov 2022 00:12:34 GMT'); // wake up at specific time and timezone
+sleepUntil("30 Sep " + (new Date().getFullYear() + 1)); // wake up when September ends
+sleepUntil("5 Nov 2022 00:12:34 GMT"); // wake up at specific time and timezone
 
 // optional 2nd arg
-sleepUntil('5 Nov 2022 00:12:34 GMT', specificDateTime); // take control over the "start" time in case you need to
+sleepUntil("5 Nov 2022 00:12:34 GMT", specificDateTime); // take control over the "start" time in case you need to
 ```
 
 This is a very simple function - under the hood it just uses `date-fns/differenceInMilliseconds` to calculate time difference.
@@ -35,7 +35,7 @@ This is discussed in the docs https://docs.temporal.io/docs/typescript/workflows
 
 ## `UpdatableTimer`
 
-`sleep` only lets you set a fixed time upfront. 
+`sleep` only lets you set a fixed time upfront.
 `UpdatableTimer` is a special class that lets you update that while sleeping.
 You can consider it the next step up from `sleepUntil`.
 
@@ -45,10 +45,13 @@ After you instantiate it with an initial datetime to wake up at, it exposes only
 // example usage inside workflow function
 export async function countdownWorkflow(initialDeadline: Date): Promise<void> {
   const timer = new UpdatableTimer(initialDeadline);
-  wf.setHandler(setDeadlineSignal, (deadline) => void (timer.deadline = deadline)) // send in new deadlines via Signal
+  wf.setHandler(
+    setDeadlineSignal,
+    (deadline) => void (timer.deadline = deadline)
+  ); // send in new deadlines via Signal
   wf.setHandler(timeLeftQuery, () => timer.deadline - Date.now()); // get time left via Query
   await timer; // if you send in a signal with a new time, this timer will resolve earlier!
-  console.log('countdown done!');
+  console.log("countdown done!");
 }
 ```
 
@@ -71,19 +74,20 @@ async function run() {
   const client = new WorkflowClient();
   const handle = await client.start(ScheduleWorkflow, {
     args: [
-      exampleWorkflow,
+      exampleWorkflow, // workflow to be executed on a schedule. can be string name.
       {
         args: ["Example arg payload"], // static for now, but possible to modify to make dynamic in future - ask swyx
         // // regular workflow options apply here, with two additions (defaults shown):
         // cancellationType: ChildWorkflowCancellationType.WAIT_CANCELLATION_COMPLETED,
         // parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_TERMINATE
       },
-      { // args 
+      {
+        // args
         cronParser: {
           expression: "* * * * *", // every minute
           // options: https://www.npmjs.com/package/cron-parser#user-content-options
         },
-        // maxInvocations?: number; 
+        // maxInvocations?: number;
         // jitterMs?: number;
       },
     ],
@@ -97,24 +101,49 @@ This uses https://www.npmjs.com/package/cron-parser under the hood, thereby gett
 
 ```ts
 // client.ts
-const handle = await client.start(MyScheduleWorkflow, {
+const handle = await client.start(ScheduleWorkflow, {
   args: [
+    exampleWorkflow, // as above
+    {}, // if no args needed
     {
+      // scheduleOptions
       cronParser: {
-        expression: '0 0 * * * 1,3L', // run every Monday as well as the last Wednesday of the month
+        expression: "0 0 * * * 1,3L", // run every Monday as well as the last Wednesday of the month
         options: {
-          currentDate: '2016-03-27 00:00:01',
-          endDate: new Date('Wed, 26 Dec 2012 14:40:00 UTC'),
-          tz: 'Europe/Athens',
+          currentDate: "2016-03-27 00:00:01",
+          endDate: new Date("Wed, 26 Dec 2012 14:40:00 UTC"),
+          tz: "Europe/Athens",
         },
       },
       maxInvocations: 500,
       jitterMs: 1000,
     },
   ],
-  taskQueue: 'scheduler',
-  workflowId: 'schedule-for-' + userId,
+  taskQueue: "scheduler",
+  workflowId: "schedule-for-" + userId,
 });
+```
+
+The Workflow exposes a number of useful queries and signals:
+
+```ts
+import {
+  numInvocationsQuery,
+  futureScheduleQuery,
+  manualTriggerSignal,
+  ScheduleWorkflowState,
+  stateSignal,
+  stateQuery,
+  // ...
+} from "temporal-time-utils";
+
+await handle.query(numInvocationsQuery); // get how many times exampleWorkflow has been invoked by ScheduleWorkflow
+await handle.query(futureScheduleQuery, 3); // get the next 3 times it is set to be invoked. defaults to 5
+await handle.signal(manualTriggerSignal); // manually trigger workflow
+await handle.signal(stateSignal, "PAUSED" as ScheduleWorkflowState); // pause workflow
+await handle.signal(stateSignal, "RUNNING" as ScheduleWorkflowState); // resume workflow
+await handle.cancel(); // stop schedule workflow completely
+await handle.query(stateQuery); // get wf state (running, paused, or stopped)
 ```
 
 This is a decoupled and slightly modified variant of what was discussed in the docs: https://docs.temporal.io/docs/typescript/workflows#schedule-workflow-example

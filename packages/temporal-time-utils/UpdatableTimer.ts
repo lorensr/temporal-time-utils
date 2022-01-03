@@ -1,4 +1,4 @@
-import * as wf from '@temporalio/workflow';
+import * as wf from "@temporalio/workflow";
 
 // // example usage
 // export async function countdownWorkflow(): Promise<void> {

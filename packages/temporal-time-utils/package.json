@@ -1,6 +1,6 @@
 {
   "name": "temporal-time-utils",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "./index.ts",
   "types": "./index.ts",
   "homepage": "https://github.com/sw-yx/temporal-time-utils.git",

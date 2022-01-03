@@ -1,18 +1,22 @@
-import * as wf from '@temporalio/workflow';
-import {WithWorkflowArgs, Workflow,WorkflowResultType} from '@temporalio/common';
-import parser from 'cron-parser';
-import differenceInMilliseconds from 'date-fns/differenceInMilliseconds';
+import * as wf from "@temporalio/workflow";
+import {
+  WithWorkflowArgs,
+  Workflow,
+  WorkflowResultType,
+} from "@temporalio/common";
+import parser from "cron-parser";
+import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 
-import { sleepUntil } from './sleepUntil';
+import { sleepUntil } from "./sleepUntil";
 
 // queries
-export const numInvocationsQuery = wf.defineQuery('numInvocationsQuery');
-export const futureScheduleQuery = wf.defineQuery('futureScheduleQuery');
-export const manualTriggerSignal = wf.defineSignal('manualTriggerSignal');
-export type ScheduleWorkflowState = 'RUNNING' | 'PAUSED' | 'STOPPED';
+export const numInvocationsQuery = wf.defineQuery("numInvocationsQuery");
+export const futureScheduleQuery = wf.defineQuery("futureScheduleQuery");
+export const manualTriggerSignal = wf.defineSignal("manualTriggerSignal");
+export type ScheduleWorkflowState = "RUNNING" | "PAUSED" | "STOPPED";
 export const stateSignal =
-  wf.defineSignal<[ScheduleWorkflowState]>('stateSignal');
-export const stateQuery = wf.defineQuery<ScheduleWorkflowState>('stateQuery');
+  wf.defineSignal<[ScheduleWorkflowState]>("stateSignal");
+export const stateQuery = wf.defineQuery<ScheduleWorkflowState>("stateQuery");
 
 export type ScheduleOptions = {
   cronParser: {
@@ -22,9 +26,9 @@ export type ScheduleOptions = {
   callbackFn: (nextTime?: string, invocations?: number) => Promise<void>;
   maxInvocations?: number;
   jitterMs?: number;
-}
-export type ScheduleWorkflowOptions<T extends wf.Workflow = wf.Workflow> = WithWorkflowArgs<T, wf.ChildWorkflowOptions>
-
+};
+export type ScheduleWorkflowOptions<T extends wf.Workflow = wf.Workflow> =
+  WithWorkflowArgs<T, wf.ChildWorkflowOptions>;
 
 export async function ScheduleWorkflow<T extends Workflow>(
   workflowToSchedule: string,
@@ -33,7 +37,6 @@ export async function ScheduleWorkflow<T extends Workflow>(
   invocations: number
 ): Promise<WorkflowResultType<T>>;
 
-
 export async function ScheduleWorkflow<T extends Workflow>(
   workflowToSchedule: T,
   workflowOptions: ScheduleWorkflowOptions<T>,
@@ -41,24 +44,27 @@ export async function ScheduleWorkflow<T extends Workflow>(
   invocations: number
 ): Promise<WorkflowResultType<T>>;
 
-
 export async function ScheduleWorkflow<T extends Workflow>(
   workflowToSchedule: string | T,
   workflowOptions: ScheduleWorkflowOptions,
   scheduleOptions: ScheduleOptions,
   invocations: number = 1
 ) {
+  const workflowType =
+    typeof workflowToSchedule === "string"
+      ? workflowToSchedule
+      : workflowToSchedule.name;
   // signal and query handlers
   wf.setHandler(numInvocationsQuery, () => invocations);
   wf.setHandler(manualTriggerSignal, () =>
     // note that we increment invocations after call
-    wf.executeChild(workflowToSchedule as string, {
+    wf.executeChild(workflowType, {
       args: workflowOptions.args,
       workflowId: `scheduled-${invocations++}-${nextTime.toString()}`,
-      ...workflowOptions
+      ...workflowOptions,
     })
   );
-  let scheduleWorkflowState = 'RUNNING' as ScheduleWorkflowState;
+  let scheduleWorkflowState = "RUNNING" as ScheduleWorkflowState;
   wf.setHandler(stateQuery, () => scheduleWorkflowState);
   wf.setHandler(stateSignal, (state) => void (scheduleWorkflowState = state));
 
@@ -84,31 +90,36 @@ export async function ScheduleWorkflow<T extends Workflow>(
   try {
     await sleepUntil(nextTime);
     if (scheduleOptions.jitterMs) {
-      await wf.sleep(Math.floor(Math.random() * (scheduleOptions.jitterMs + 1)));
+      await wf.sleep(
+        Math.floor(Math.random() * (scheduleOptions.jitterMs + 1))
+      );
     }
-    if (scheduleWorkflowState === 'PAUSED') {
-      await wf.condition(() => scheduleWorkflowState === 'RUNNING');
+    if (scheduleWorkflowState === "PAUSED") {
+      await wf.condition(() => scheduleWorkflowState === "RUNNING");
     }
-    wf.executeChild(workflowToSchedule as string, {
+    wf.executeChild(workflowType, {
       args: workflowOptions.args,
       workflowId: `scheduled-${invocations}-${nextTime.toString()}`,
-      ...workflowOptions
+      ...workflowOptions,
       // // regular workflow options apply here, with two additions (defaults shown):
       // cancellationType: ChildWorkflowCancellationType.WAIT_CANCELLATION_COMPLETED,
       // parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_TERMINATE
-    })
-    if (scheduleOptions.maxInvocations && scheduleOptions.maxInvocations > invocations) {
-      await wf.continueAsNew<typeof ScheduleWorkflow>(
-        workflowToSchedule as Workflow,
+    });
+    if (
+      scheduleOptions.maxInvocations &&
+      scheduleOptions.maxInvocations > invocations
+    ) {
+      await wf.continueAsNew(
+        workflowType,
         workflowOptions,
         scheduleOptions,
         invocations + 1
       );
     } else {
-      scheduleWorkflowState = 'STOPPED';
+      scheduleWorkflowState = "STOPPED";
     }
   } catch (err) {
-    if (wf.isCancellation(err)) scheduleWorkflowState = 'STOPPED';
+    if (wf.isCancellation(err)) scheduleWorkflowState = "STOPPED";
     else throw err;
   }
 }
