@@ -1,8 +1,22 @@
 {
   "name": "temporal-time-utils",
-  "version": "0.0.0",
+  "version": "0.0.2",
   "main": "./index.ts",
   "types": "./index.ts",
+  "homepage": "https://github.com/sw-yx/temporal-time-utils.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sw-yx/temporal-time-utils.git"
+  },
+  "keywords": [
+    "sleep",
+    "nodejs",
+    "temporalio",
+    "timers"
+  ],
+  "bugs": {
+    "url": "https://github.com/sw-yx/temporal-time-utils/issues"
+  },
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
