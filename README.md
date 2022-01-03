@@ -66,6 +66,11 @@ A Workflow that schedules other Workflows.
 
 This is a premade Workflow that you can register in a Worker and call from a client, to invoke other Workflows on a schedule. You can consider this the next step up from "Cron Workflows".
 
+See example usage inside of `/apps/fixture`:
+
+- https://github.com/sw-yx/temporal-time-utils/blob/main/apps/fixture/src/client.ts invoke the `ScheduleWorkflow` and pass in an `example` Workflow to call on a schedule
+- https://github.com/sw-yx/temporal-time-utils/blob/main/apps/fixture/src/workflows.ts#L5 necessary export for Worker to pick it up
+
 ```ts
 // inside client file
 async function run() {
