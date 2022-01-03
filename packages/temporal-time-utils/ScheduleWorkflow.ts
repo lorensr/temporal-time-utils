@@ -17,8 +17,9 @@ export const stateQuery = wf.defineQuery<ScheduleWorkflowState>('stateQuery');
 export type ScheduleOptions = {
   cronParser: {
     expression: string;
-    options?: parser.ParserOptions;
+    options: parser.ParserOptions;
   };
+  callbackFn: (nextTime?: string, invocations?: number) => Promise<void>;
   maxInvocations?: number;
   jitterMs?: number;
 }
@@ -29,7 +30,7 @@ export async function ScheduleWorkflow<T extends Workflow>(
   workflowToSchedule: string,
   workflowOptions: ScheduleWorkflowOptions<T>,
   scheduleOptions: ScheduleOptions,
-  invocations?: number
+  invocations: number
 ): Promise<WorkflowResultType<T>>;
 
 
@@ -37,7 +38,7 @@ export async function ScheduleWorkflow<T extends Workflow>(
   workflowToSchedule: T,
   workflowOptions: ScheduleWorkflowOptions<T>,
   scheduleOptions: ScheduleOptions,
-  invocations?: number
+  invocations: number
 ): Promise<WorkflowResultType<T>>;
 
 
