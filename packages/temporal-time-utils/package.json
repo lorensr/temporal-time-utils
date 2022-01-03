@@ -1,0 +1,22 @@
+{
+  "name": "temporal-time-utils",
+  "version": "0.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc --build",
+    "build.watch": "tsc --build --watch",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "cron-parser": "^4.2.1",
+    "date-fns": "^2.14.0"
+  },
+  "devDependencies": {
+    "config": "*",
+    "temporalio": "*",
+    "tsconfig": "*",
+    "typescript": "^4.5.3"
+  }
+}
