@@ -2,9 +2,9 @@
 
 This is a library with some reusable functions for [Temporal.io TypeScript SDK](https://docs.temporal.io/docs/typescript/introduction):
 
-- `sleepUntil`
-- `UpdatableTimer`
-- `ScheduleWorkflow`
+- `sleepUntil`: sleep to a specific date, instead of by num of milliseconds
+- `UpdatableTimer`: sleep to a specific date, updatable and queryable
+- `ScheduleWorkflow`: schedule other workflows by extended cron syntax, with support for jitter, timezone, max invocations, 
 
 This serves as both a utility library and a demonstration of how you can publish reusable Temporal libraries (both for Workflows and Activities).
 
@@ -43,16 +43,10 @@ After you instantiate it with an initial datetime to wake up at, it exposes only
 
 ```ts
 // example usage inside workflow function
-export async function countdownWorkflow(): Promise<void> {
-  const target = Date.now() + 24 * 60 * 60 * 1000; // 1 day!!!
-  const timer = new UpdatableTimer(target);
-  console.log('timer set for: ' + new Date(target).toString());
-  wf.setHandler(setDeadlineSignal, (deadline) => {
-    // send in new deadlines via Signal
-    timer.deadline = deadline;
-    console.log('timer now set for: ' + new Date(deadline).toString());
-  });
-  wf.setHandler(timeLeftQuery, () => timer.deadline - Date.now());
+export async function countdownWorkflow(initialDeadline: Date): Promise<void> {
+  const timer = new UpdatableTimer(initialDeadline);
+  wf.setHandler(setDeadlineSignal, (deadline) => void (timer.deadline = deadline)) // send in new deadlines via Signal
+  wf.setHandler(timeLeftQuery, () => timer.deadline - Date.now()); // get time left via Query
   await timer; // if you send in a signal with a new time, this timer will resolve earlier!
   console.log('countdown done!');
 }
