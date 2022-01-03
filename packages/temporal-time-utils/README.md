@@ -8,6 +8,10 @@ This is a library with some reusable functions for [Temporal.io TypeScript SDK](
 
 This serves as both a utility library and a demonstration of how you can publish reusable Temporal libraries (both for Workflows and Activities).
 
+```ts
+npm i temporal-time-utils
+```
+
 ## `sleepUntil`
 
 This is a simple drop in replacement for Temporal's `workflow.sleep()` API for when you need to sleep to a specific date rather than a fixed number of milliseconds.
