@@ -13,7 +13,7 @@ async function run() {
   // Invoke the `example` Workflow, only resolved when the workflow completes
   const handle = await client.start(ScheduleWorkflow, {
     args: [
-      example,
+      "example",
       {
         args: ["John Doe"],
       },
