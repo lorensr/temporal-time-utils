@@ -1,8 +1,11 @@
 {
-  "extends": "tsconfig/react-library.json",
+  "extends": "tsconfig/base.json",
   "include": ["."],
   "exclude": ["dist", "build", "node_modules"],
   "compilerOptions": {
+    "isolatedModules": false,
+    "target": "es6",
     "outFile": "./dist/temporal-time-utils.js",
+    "module": "system",
   }
 }

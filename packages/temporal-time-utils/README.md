@@ -74,7 +74,7 @@ async function run() {
   const client = new WorkflowClient();
   const handle = await client.start(ScheduleWorkflow, {
     args: [
-      exampleWorkflow, // workflow to be executed on a schedule. can be string name.
+      "exampleWorkflow", // workflow to be executed on a schedule. must be string name.
       {
         args: ["Example arg payload"], // static for now, but possible to modify to make dynamic in future - ask swyx
         // // regular workflow options apply here, with two additions (defaults shown):
@@ -103,7 +103,7 @@ This uses https://www.npmjs.com/package/cron-parser under the hood, thereby gett
 // client.ts
 const handle = await client.start(ScheduleWorkflow, {
   args: [
-    exampleWorkflow, // as above
+    "exampleWorkflow", // as above
     {}, // if no args needed
     {
       // scheduleOptions

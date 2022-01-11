@@ -2,9 +2,10 @@ import * as wf from "@temporalio/workflow";
 import {
   WithWorkflowArgs,
   Workflow,
-  WorkflowResultType,
+  // WorkflowResultType,
 } from "@temporalio/common";
-import parser from "cron-parser";
+const parser = require("cron-parser"); // es6 import doesnt work bc their types are bad
+import { ParserOptions } from "cron-parser";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 
 import { sleepUntil } from "./sleepUntil";
@@ -21,44 +22,26 @@ export const stateQuery = wf.defineQuery<ScheduleWorkflowState>("stateQuery");
 export type ScheduleOptions = {
   cronParser: {
     expression: string;
-    options: parser.ParserOptions;
+    options?: ParserOptions;
   };
-  callbackFn: (nextTime?: string, invocations?: number) => Promise<void>;
   maxInvocations?: number;
   jitterMs?: number;
 };
-export type ScheduleWorkflowOptions<T extends wf.Workflow = wf.Workflow> =
-  WithWorkflowArgs<T, wf.ChildWorkflowOptions>;
 
 export async function ScheduleWorkflow<T extends Workflow>(
+  /** Name of the child workflow to start */
   workflowToSchedule: string,
-  workflowOptions: ScheduleWorkflowOptions<T>,
-  scheduleOptions: ScheduleOptions,
-  invocations: number
-): Promise<WorkflowResultType<T>>;
-
-export async function ScheduleWorkflow<T extends Workflow>(
-  workflowToSchedule: T,
-  workflowOptions: ScheduleWorkflowOptions<T>,
-  scheduleOptions: ScheduleOptions,
-  invocations: number
-): Promise<WorkflowResultType<T>>;
-
-export async function ScheduleWorkflow<T extends Workflow>(
-  workflowToSchedule: string | T,
-  workflowOptions: ScheduleWorkflowOptions,
+  /** Options to start the child workflow with, including ParentClosePolicy */
+  workflowOptions: WithWorkflowArgs<T, wf.ChildWorkflowOptions>,
+  /** Options that control how the scheduling is done */
   scheduleOptions: ScheduleOptions,
   invocations: number = 1
 ) {
-  const workflowType =
-    typeof workflowToSchedule === "string"
-      ? workflowToSchedule
-      : workflowToSchedule.name;
   // signal and query handlers
   wf.setHandler(numInvocationsQuery, () => invocations);
   wf.setHandler(manualTriggerSignal, () =>
     // note that we increment invocations after call
-    wf.executeChild(workflowType, {
+    wf.executeChild(workflowToSchedule, {
       args: workflowOptions.args,
       workflowId: `scheduled-${invocations++}-${nextTime.toString()}`,
       ...workflowOptions,
@@ -97,7 +80,7 @@ export async function ScheduleWorkflow<T extends Workflow>(
     if (scheduleWorkflowState === "PAUSED") {
       await wf.condition(() => scheduleWorkflowState === "RUNNING");
     }
-    wf.executeChild(workflowType, {
+    wf.executeChild(workflowToSchedule, {
       args: workflowOptions.args,
       workflowId: `scheduled-${invocations}-${nextTime.toString()}`,
       ...workflowOptions,
@@ -110,7 +93,7 @@ export async function ScheduleWorkflow<T extends Workflow>(
       scheduleOptions.maxInvocations > invocations
     ) {
       await wf.continueAsNew(
-        workflowType,
+        workflowToSchedule,
         workflowOptions,
         scheduleOptions,
         invocations + 1
