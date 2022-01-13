@@ -152,7 +152,7 @@ await handle.query(stateQuery); // get wf state (running, paused, or stopped)
 
 ## `Entity`
 
-This workflow manages continue as new for you.
+This special class packages an indefinitely long lived Workflow and the Signal and Query that go with updating it. It correctly handles the pending Signals and `continueAsNew`, and calls `continueAsNew` at least once a day as recommended by Temporal.
 
 ```ts
 import { Entity } from "temporal-time-utils";
@@ -175,4 +175,5 @@ const handle = await client.start(entity.workflow, {
 
 // during signaling updates
 await client.Signal(entity.Signal, { increment: 1 })
+console.log(await client.Query(entity.Query))
 ```
