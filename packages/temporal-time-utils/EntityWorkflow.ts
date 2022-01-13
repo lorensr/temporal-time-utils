@@ -50,7 +50,7 @@ export class Entity<Input = any, Update = any> {
             const acts = wf.proxyActivities(this.thingToInvoke.activityOptions);
             await acts[this.thingToInvoke.activity](update);
           } else if ("workflow" in this.thingToInvoke) {
-            wf.executeChild(this.thingToInvoke.workflow, {
+            await wf.executeChild(this.thingToInvoke.workflow, {
               args: [update],
               ...this.thingToInvoke.workflowOptions,
             });
