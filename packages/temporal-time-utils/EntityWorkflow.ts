@@ -1,28 +1,29 @@
 import * as wf from '@temporalio/workflow';
+import {SignalDefinition} from '@temporalio/common'
 
 const noop = async () => {}
-type Update = any // no way to export this usefully?
 type ThingToInvoke = { activity: string, activityOptions: wf.ActivityOptions } 
 | { workflow: string, workflowOptions: wf.ChildWorkflowOptions }
-export const EntityUpdateSignal = wf.defineSignal<[Update]>('EntityUpdateSignal') // no real way to pass the types
-export class Entity<Input = any> {
+export class Entity<Input = any, Update = any> {
   MAX_ITERATIONS: number
   setup: (input: Input) => Promise<void>
   cleanup: () => Promise<void>
   thingToInvoke: ThingToInvoke
-
+  Signal: SignalDefinition<[Update]>
+  
   constructor(thingToInvoke: ThingToInvoke, maxIterations = 1000, setup = noop, cleanup = noop) {
     this.thingToInvoke = thingToInvoke;
     this.MAX_ITERATIONS = maxIterations // can override if needed
     this.setup = setup
     this.cleanup = cleanup
+    this.Signal = wf.defineSignal<[Update]>('Signal') // no real way to pass the types
     this.workflow = this.workflow.bind(this)
   }
 
   async workflow(input: Input, isContinued = false) {
     try {
       const pendingUpdates = Array<Update>();
-      wf.setHandler(EntityUpdateSignal, (updateCommand: Input) => {
+      wf.setHandler(this.Signal, (updateCommand: Update) => {
         pendingUpdates.push(updateCommand);
       });
 
@@ -41,7 +42,7 @@ export class Entity<Input = any> {
               await acts[this.thingToInvoke.activity](update);
             } else if ('workflow' in this.thingToInvoke) {
               wf.executeChild(this.thingToInvoke.workflow, {
-                args: update
+                args: [update],
                 ...this.thingToInvoke.workflowOptions
               });
             } else {
