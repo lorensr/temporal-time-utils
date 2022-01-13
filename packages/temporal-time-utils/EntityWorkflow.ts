@@ -58,6 +58,6 @@ export class Entity<Input = any, Update = any> {
       }
       throw err;
     }
-    await wf.continueAsNew<typeof this.workflow>(input, false);
+    await wf.continueAsNew<typeof this.workflow>(input, true);
   }
 }

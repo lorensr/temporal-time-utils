@@ -174,5 +174,5 @@ const handle = await client.start(entity.workflow, {
 });
 
 // during signaling updates
-await client.Signal(entity.Signal, 'new thing')
+await client.Signal(entity.Signal, { increment: 1 })
 ```
