@@ -2,69 +2,62 @@ import * as wf from "@temporalio/workflow";
 import { SignalDefinition, QueryDefinition } from "@temporalio/common";
 
 const noop = async () => {};
-type ThingToInvoke =
-  | { activity: string; activityOptions: wf.ActivityOptions }
-  | { workflow: string; workflowOptions: wf.ChildWorkflowOptions };
-export class Entity<Input = any, Update = any> {
-  MAX_ITERATIONS: number;
+type EntityOptions = {
+  maxIterations: number;
+  timeToContinue: number | string
+}
+export class Entity<Input = any, Update = any, State extends string = any> {
+  options: EntityOptions;
   setup: (input: Input) => Promise<void>;
-  cleanup: () => Promise<void>;
-  thingToInvoke: ThingToInvoke;
-  Signal: SignalDefinition<[Update]>;
-  Query: QueryDefinition<any>;
+  cleanup: (state?: State) => Promise<void>;
+  updateCallback: (input?: Update) => Promise<void | State>;
+  signal: SignalDefinition<[Update]>;
+  state: State
+  query: QueryDefinition<any>;
 
   constructor(
-    thingToInvoke: ThingToInvoke,
-    maxIterations = 1000,
+    updateCallback = noop,
+    initialState = 'No initial state specified for Entity' as State,
     setup = noop,
-    cleanup = noop
+    cleanup = noop,
+    options: EntityOptions
   ) {
-    this.thingToInvoke = thingToInvoke;
-    this.MAX_ITERATIONS = maxIterations; // can override if needed
+    this.state = initialState;
+    this.updateCallback = updateCallback;
     this.setup = setup;
     this.cleanup = cleanup;
-    this.Signal = wf.defineSignal<[Update]>("EntitySignal"); // no real way to pass the types
-    this.Query = wf.defineQuery<[Update]>("EntityQuery"); // no real way to pass the types
+    this.signal = wf.defineSignal<[Update]>("EntitySignal");
+    this.query = wf.defineQuery<[Update]>("EntityStateQuery");
     this.workflow = this.workflow.bind(this);
+    this.options = {
+      maxIterations: options.maxIterations || 1000,
+      timeToContinue: options.timeToContinue || '1 day',
+    }
   }
 
   async workflow(input: Input, isContinued = false) {
     try {
       const pendingUpdates = Array<Update>();
-      wf.setHandler(this.Signal, (updateCommand: Update) => {
+      wf.setHandler(this.signal, (updateCommand: Update) => {
         pendingUpdates.push(updateCommand);
       });
-      wf.setHandler(this.Query, () => pendingUpdates);
+      wf.setHandler(this.query, () => this.state);
 
-      if (!isContinued) {
-        await this.setup(input);
-      }
+      if (!isContinued) await this.setup(input);
 
-      for (let iteration = 1; iteration <= this.MAX_ITERATIONS; ++iteration) {
+      for (let iteration = 1; iteration <= this.options.maxIterations; ++iteration) {
         // Automatically continue as new after a day if no updates were received
-        await wf.condition(() => pendingUpdates.length > 0, "1 day");
+        await wf.condition(() => pendingUpdates.length > 0, this.options.timeToContinue);
 
         while (pendingUpdates.length) {
           const update = pendingUpdates.shift();
-          if ("activity" in this.thingToInvoke) {
-            const acts = wf.proxyActivities(this.thingToInvoke.activityOptions);
-            await acts[this.thingToInvoke.activity](update);
-          } else if ("workflow" in this.thingToInvoke) {
-            await wf.executeChild(this.thingToInvoke.workflow, {
-              args: [update],
-              ...this.thingToInvoke.workflowOptions,
-            });
-          } else {
-            throw new Error(
-              "No thing to invoke: " + JSON.stringify(this.thingToInvoke)
-            );
-          }
+          await this.updateCallback(update);
         }
       }
     } catch (err) {
       if (wf.isCancellation(err)) {
         await wf.CancellationScope.nonCancellable(async () => {
-          await this.cleanup();
+          await this.cleanup(this.state);
         });
       }
       throw err;
