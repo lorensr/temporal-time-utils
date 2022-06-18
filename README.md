@@ -1,4 +1,4 @@
-> i have left temporal and am hapoy to hand this project over to somebody if you want it
+> i have left temporal and am hapoy to hand this project over to somebody if you want it, just contact me i am easy to find
 
 # temporal-time-utils
 
