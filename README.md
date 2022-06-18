@@ -1,3 +1,5 @@
+> i have left temporal and am hapoy to hand this project over to somebody if you want it
+
 # temporal-time-utils
 
 This is a library with some reusable functions for [Temporal.io TypeScript SDK](https://docs.temporal.io/docs/typescript/introduction):
