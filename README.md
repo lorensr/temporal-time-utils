@@ -1,20 +1,18 @@
-> i have left temporal and am hapoy to hand this project over to somebody if you want it, just contact me i am easy to find
-
 # temporal-time-utils
 
 This is a library with some reusable functions for [Temporal.io TypeScript SDK](https://docs.temporal.io/docs/typescript/introduction):
 
-- `sleepUntil`: sleep to a specific date, instead of by num of milliseconds
+- `sleepUntil`: sleep to a specific date, instead of by number of milliseconds
 - `UpdatableTimer`: sleep to a specific date, updatable and queryable
-- `ScheduleWorkflow`: schedule other workflows by extended cron syntax, with support for jitter, timezone, max invocations, manual triggers, pausing/unpausing, querying future executions, and more.
+- `ScheduleWorkflow`: *[Deprecated in favor of [Schedules](https://docs.temporal.io/workflows#schedule)]* schedule other workflows by extended cron syntax, with support for jitter, timezone, max invocations, manual triggers, pausing/unpausing, querying future executions, and more.
 
 This serves as both a utility library and a demonstration of how you can publish reusable Temporal libraries (both for Workflows and Activities).
+
+⚠️ **Note:** This is not an officially supported Temporal library due to the fact that `sleepUntil` and `UpdatableTimer` are not guaranteed to be accurate: the number of milliseconds until the given date is calculated up front, so if any time/date adjustments are made (like changes in timezones, daylight savings, leap seconds), the timer may not fire at the exact correct time.
 
 ```ts
 npm i temporal-time-utils
 ```
-
-Repo: https://github.com/sw-yx/temporal-time-utils
 
 ## `sleepUntil`
 
@@ -67,8 +65,8 @@ This is a premade Workflow that you can register in a Worker and call from a cli
 
 See example usage inside of `/apps/fixture`:
 
-- https://github.com/sw-yx/temporal-time-utils/blob/main/apps/fixture/src/client.ts invoke the `ScheduleWorkflow` and pass in an `example` Workflow to call on a schedule
-- https://github.com/sw-yx/temporal-time-utils/blob/main/apps/fixture/src/workflows.ts#L5 necessary export for Worker to pick it up
+- https://github.com/lorensr/temporal-time-utils/blob/main/apps/fixture/src/client.ts invoke the `ScheduleWorkflow` and pass in an `example` Workflow to call on a schedule
+- https://github.com/lorensr/temporal-time-utils/blob/main/apps/fixture/src/workflows.ts#L5 necessary export for Worker to pick it up
 
 ```ts
 // inside client file
